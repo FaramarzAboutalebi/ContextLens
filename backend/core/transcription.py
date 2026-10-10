@@ -1,5 +1,6 @@
 """Whisper transcription and transcript normalization for ContextLens."""
 
+import os
 import re
 
 from .audio import load_audio
@@ -15,13 +16,23 @@ def get_whisper_model():
     global _model
 
     if _model is None:
-        import torch
         from faster_whisper import WhisperModel
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        compute_type = "float16" if device == "cuda" else "int8"
+        model_name = os.getenv("WHISPER_MODEL_PATH", WHISPER_MODEL_NAME)
+        device = os.getenv("WHISPER_DEVICE")
+        if not device:
+            try:
+                import torch
+
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+            except ImportError:
+                device = "cpu"
+        compute_type = os.getenv(
+            "WHISPER_COMPUTE_TYPE",
+            "float16" if device == "cuda" else "int8",
+        )
         _model = WhisperModel(
-            WHISPER_MODEL_NAME,
+            model_name,
             device=device,
             compute_type=compute_type,
         )

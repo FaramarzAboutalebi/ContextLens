@@ -56,9 +56,15 @@ def build_frontend_response(analysis_result, ai_result=None):
     }
 
 
-def analyze_context(original_video, clip_video, use_ai=True):
+def analyze_context(
+    original_video,
+    clip_video,
+    use_ai=True,
+    analysis_id=None,
+    gemini_api_key=None,
+):
     """Analyze a cropped clip against its original video."""
-    analysis_id = str(uuid.uuid4())
+    analysis_id = analysis_id or str(uuid.uuid4())
     created_at = datetime.now(timezone.utc).isoformat()
 
     def error_response(code, message):
@@ -223,7 +229,11 @@ def analyze_context(original_video, clip_video, use_ai=True):
                 match["start"],
                 match["end"],
             )
-            ai_result = generate_context_insights(result) if use_ai else None
+            ai_result = (
+                generate_context_insights(result, api_key=gemini_api_key)
+                if use_ai
+                else None
+            )
             return build_frontend_response(result, ai_result)
 
     except Exception as error:

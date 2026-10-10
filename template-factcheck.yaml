@@ -1,0 +1,262 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Isolated ContextLens Instagram Reel fact-checking backend
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: http://localhost:5173
+    Description: Exact browser origin allowed by API Gateway and S3
+  GeminiSecretArn:
+    Type: String
+    Default: arn:aws:secretsmanager:us-east-1:633398615960:secret:contextlens/gemini-api-key-rXPLY7
+    Description: Existing Secrets Manager ARN read by only the fact-check worker
+  MaxMediaBytes:
+    Type: Number
+    Default: 78643200
+  MaxVideoSeconds:
+    Type: Number
+    Default: 180
+  JobTtlSeconds:
+    Type: Number
+    Default: 172800
+  MaxReviewedClaims:
+    Type: Number
+    Default: 6
+    MinValue: 1
+    MaxValue: 8
+    Description: Maximum grounded factual claims reviewed per video
+  RateLimitPerClientHour:
+    Type: Number
+    Default: 6
+    MinValue: 1
+    Description: Maximum new fact-check jobs per source IP hash per UTC hour
+  RateLimitGlobalHour:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    Description: Maximum new fact-check jobs across all clients per UTC hour
+  RateLimitGlobalDay:
+    Type: Number
+    Default: 100
+    MinValue: 1
+    Description: Maximum new fact-check jobs across all clients per UTC day
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        FACTCHECK_BUCKET: !Ref FactCheckBucket
+        FACTCHECK_TABLE: !Ref FactCheckTable
+        MAX_MEDIA_BYTES: !Ref MaxMediaBytes
+        MAX_VIDEO_SECONDS: !Ref MaxVideoSeconds
+        JOB_TTL_SECONDS: !Ref JobTtlSeconds
+
+Resources:
+  FactCheckApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+        AllowHeaders:
+          - Content-Type
+        ExposeHeaders:
+          - Retry-After
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        MaxAge: 600
+
+  FactCheckBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref FrontendOrigin
+            AllowedMethods:
+              - POST
+              - HEAD
+            AllowedHeaders:
+              - Content-Type
+              - x-amz-server-side-encryption
+            ExposedHeaders:
+              - ETag
+            MaxAge: 600
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteFactCheckMedia
+            Status: Enabled
+            ExpirationInDays: 2
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  FactCheckTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: fact_check_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: fact_check_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+
+  FactCheckDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  FactCheckQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 5400
+      MessageRetentionPeriod: 86400
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt FactCheckDeadLetterQueue.Arn
+        maxReceiveCount: 2
+
+  FactCheckApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: backend/factcheck/
+      Handler: factcheck.api.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          FACTCHECK_QUEUE_URL: !Ref FactCheckQueue
+          UPLOAD_URL_TTL_SECONDS: 900
+          RATE_LIMIT_PER_CLIENT_HOUR: !Ref RateLimitPerClientHour
+          RATE_LIMIT_GLOBAL_HOUR: !Ref RateLimitGlobalHour
+          RATE_LIMIT_GLOBAL_DAY: !Ref RateLimitGlobalDay
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref FactCheckBucket
+        - S3WritePolicy:
+            BucketName: !Ref FactCheckBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref FactCheckTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt FactCheckQueue.QueueName
+      Events:
+        CreateFactCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref FactCheckApi
+            Path: /fact-checks
+            Method: POST
+        CompleteFactCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref FactCheckApi
+            Path: /fact-checks/{fact_check_id}/complete
+            Method: POST
+        GetFactCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref FactCheckApi
+            Path: /fact-checks/{fact_check_id}
+            Method: GET
+
+  FactCheckWorkerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: factcheck/Dockerfile
+      DockerContext: backend/
+      DockerTag: contextlens-factcheck-worker
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Timeout: 900
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 8192
+      Environment:
+        Variables:
+          GEMINI_SECRET_ID: !Ref GeminiSecretArn
+          GEMINI_MODEL: gemini-3.8-flash
+          MAX_REVIEWED_CLAIMS: !Ref MaxReviewedClaims
+          MAX_IDENTIFIED_CLAIMS: 16
+          DOWNLOAD_TIMEOUT_SECONDS: 90
+          PROCESSING_LEASE_SECONDS: 5400
+          WHISPER_MODEL_PATH: /opt/models/faster-whisper-small
+          WHISPER_DEVICE: cpu
+          WHISPER_COMPUTE_TYPE: int8
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref FactCheckBucket
+        - S3WritePolicy:
+            BucketName: !Ref FactCheckBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref FactCheckTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt FactCheckQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref GeminiSecretArn
+      Events:
+        FactCheckJobs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt FactCheckQueue.Arn
+            BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  FactCheckApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${FactCheckApiFunction}
+      RetentionInDays: 7
+
+  FactCheckWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${FactCheckWorkerFunction}
+      RetentionInDays: 7
+
+Outputs:
+  ApiBaseUrl:
+    Value: !Sub https://${FactCheckApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  FactCheckBucketName:
+    Value: !Ref FactCheckBucket
+  FactCheckTableName:
+    Value: !Ref FactCheckTable
+  FactCheckQueueUrl:
+    Value: !Ref FactCheckQueue

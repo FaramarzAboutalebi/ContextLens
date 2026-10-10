@@ -683,7 +683,9 @@ When troubleshooting CORS:
 
 ## 9. Gemini AI insights
 
-Gemini is optional and is currently disabled in the deployed stack because no Gemini Secrets Manager ARN was supplied during deployment. The matching pipeline still works normally.
+Gemini is optional and is configured in the deployed worker through AWS Secrets Manager. When `use_ai` is `true` and the deterministic pipeline finds a match, the worker requests a neutral contextual insight and evidence-based context flags from Gemini. The API key remains server-side and is never sent to the frontend.
+
+Gemini is intentionally non-blocking. If the AI request cannot be completed because of availability, credentials, quota, safety filtering, or another provider error, the matching pipeline still completes normally and returns:
 
 The frontend should treat this as an expected value:
 

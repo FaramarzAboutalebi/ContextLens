@@ -221,10 +221,9 @@ AFTER:
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.2,
                 max_output_tokens=1200,
                 response_mime_type="application/json",
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
+                thinking_config=types.ThinkingConfig(thinking_level="low"),
             ),
         )
 

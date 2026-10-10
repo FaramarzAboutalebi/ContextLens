@@ -1,0 +1,29 @@
+# Frontend dependencies and builds
+node_modules/
+dist/
+build/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Tooling and operating-system files
+.DS_Store
+.idea/
+.vscode/
+coverage/
+*.log

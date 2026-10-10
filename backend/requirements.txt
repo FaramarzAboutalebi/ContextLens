@@ -1,1 +1,5 @@
-# Add backend dependencies when the existing implementation is integrated.
+faster-whisper
+google-genai
+numpy
+rapidfuzz
+torch

@@ -27,3 +27,5 @@ secrets.json
 .vscode/
 coverage/
 *.log
+
+.aws-sam/

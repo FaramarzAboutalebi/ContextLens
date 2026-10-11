@@ -32,6 +32,10 @@ def upload_url_ttl_seconds():
     return int_env("UPLOAD_URL_TTL_SECONDS", 900)
 
 
+def playback_url_ttl_seconds():
+    return int_env("PLAYBACK_URL_TTL_SECONDS", 3600)
+
+
 def analysis_ttl_seconds():
     return int_env("ANALYSIS_TTL_SECONDS", 172800)
 

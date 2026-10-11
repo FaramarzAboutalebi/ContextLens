@@ -75,12 +75,17 @@ Resources:
               - !Ref FrontendOrigin
               - !Ref ProductionFrontendOrigin
             AllowedMethods:
+              - GET
               - PUT
               - HEAD
             AllowedHeaders:
               - Content-Type
+              - Range
               - x-amz-server-side-encryption
             ExposedHeaders:
+              - Accept-Ranges
+              - Content-Length
+              - Content-Range
               - ETag
             MaxAge: 600
       LifecycleConfiguration:
@@ -172,9 +177,17 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Environment:
+        Variables:
+          PLAYBACK_URL_TTL_SECONDS: 3600
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref AnalysisTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub '${UploadBucket.Arn}/analyses/*'
       Events:
         GetAnalysis:
           Type: HttpApi

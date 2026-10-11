@@ -1,7 +1,32 @@
 """Retrieve operational state and final ContextLens results."""
 
 from http_utils import json_response
-from services import dynamodb
+from services import dynamodb, s3
+from settings import playback_url_ttl_seconds
+
+
+def _playback_media(item):
+    if item.get("state") != dynamodb.COMPLETE:
+        return None
+
+    original_key = item.get("original_key")
+    clip_key = item.get("clip_key")
+    if not original_key or not clip_key:
+        return None
+
+    expires_in = playback_url_ttl_seconds()
+    return {
+        "original": {
+            "url": s3.create_playback_url(original_key, expires_in),
+            "content_type": "video/mp4",
+            "expires_in": expires_in,
+        },
+        "clip": {
+            "url": s3.create_playback_url(clip_key, expires_in),
+            "content_type": "video/mp4",
+            "expires_in": expires_in,
+        },
+    }
 
 
 def lambda_handler(event, _context):
@@ -18,6 +43,14 @@ def lambda_handler(event, _context):
             "state": item["state"],
             "result": item.get("result"),
         }
+        try:
+            media = _playback_media(item)
+            if media:
+                payload["media"] = media
+        except Exception as error:
+            # Playback is supplementary; never hide a completed analysis if URL
+            # signing is temporarily unavailable.
+            print("Playback URL generation failed:", type(error).__name__)
         if item["state"] == dynamodb.FAILED:
             payload["error"] = "Analysis processing failed. Please try again."
         return json_response(200, payload)

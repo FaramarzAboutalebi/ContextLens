@@ -1,4 +1,4 @@
-function VideoPlayer({ title, src }) {
+function VideoPlayer({ title, src, poster }) {
     if (!src) return null;
 
     return (
@@ -9,6 +9,7 @@ function VideoPlayer({ title, src }) {
                 controls
                 preload="metadata"
                 src={src}
+                poster={poster || undefined}
             >
                 Your browser does not support video playback.
             </video>

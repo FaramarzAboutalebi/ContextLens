@@ -1,6 +1,7 @@
 """SQS-triggered Lambda worker for ContextLens video analysis."""
 
 import json
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +44,53 @@ def load_gemini_api_key(client=None):
     return None
 
 
+def generate_poster(video_path, poster_path):
+    """Extract a representative frame while leaving video playback at 0:00."""
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-ss",
+            "1.5",
+            "-i",
+            str(video_path),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale='min(1280,iw)':-2",
+            "-q:v",
+            "3",
+            "-y",
+            str(poster_path),
+        ],
+        check=True,
+        timeout=30,
+    )
+
+
+def create_posters(message, original_path, clip_path, work_dir):
+    """Generate and upload optional posters without blocking analysis results."""
+    keys = s3.object_keys(message["analysis_id"])
+    posters = {
+        "original": (original_path, Path(work_dir) / "original-poster.jpg"),
+        "clip": (clip_path, Path(work_dir) / "clip-poster.jpg"),
+    }
+    uploaded = {}
+
+    for name, (video_path, poster_path) in posters.items():
+        try:
+            generate_poster(video_path, poster_path)
+            key = keys[f"{name}_poster"]
+            s3.upload_poster(key, poster_path)
+            uploaded[name] = key
+        except Exception as error:
+            print(f"{name.capitalize()} poster unavailable:", type(error).__name__)
+
+    return uploaded
+
+
 def process_message(message, gemini_api_key=None):
     analysis_id = message["analysis_id"]
     claimed = dynamodb.claim_processing(analysis_id, _now())
@@ -63,7 +111,18 @@ def process_message(message, gemini_api_key=None):
             gemini_api_key=gemini_api_key,
         )
         validate_analysis_result(result)
-        dynamodb.save_result(analysis_id, result, _now())
+        poster_keys = create_posters(
+            message,
+            original_path,
+            clip_path,
+            work_dir,
+        )
+        dynamodb.save_result(
+            analysis_id,
+            result,
+            _now(),
+            poster_keys=poster_keys,
+        )
         return True
 
 

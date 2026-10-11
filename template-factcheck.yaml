@@ -6,7 +6,11 @@ Parameters:
   FrontendOrigin:
     Type: String
     Default: http://localhost:5173
-    Description: Exact browser origin allowed by API Gateway and S3
+    Description: Exact local-development origin allowed by API Gateway and S3
+  ProductionFrontendOrigin:
+    Type: String
+    Default: https://contextlens-wheat.vercel.app
+    Description: Exact production browser origin allowed by API Gateway and S3
   GeminiSecretArn:
     Type: String
     Default: arn:aws:secretsmanager:us-east-1:633398615960:secret:contextlens/gemini-api-key-rXPLY7
@@ -64,6 +68,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref FrontendOrigin
+          - !Ref ProductionFrontendOrigin
         AllowHeaders:
           - Content-Type
         ExposeHeaders:
@@ -92,6 +97,7 @@ Resources:
         CorsRules:
           - AllowedOrigins:
               - !Ref FrontendOrigin
+              - !Ref ProductionFrontendOrigin
             AllowedMethods:
               - POST
               - HEAD

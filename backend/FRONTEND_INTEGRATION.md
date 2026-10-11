@@ -50,7 +50,8 @@ npm install
 npm run dev
 ```
 
-The deployed CORS configuration currently permits the exact origin `http://localhost:5173`, so use Vite's default host and port while developing.
+The deployed CORS configuration permits both `http://localhost:5173` and the production origin
+`https://contextlens-wheat.vercel.app`. Use Vite's default host and port while developing.
 
 ### Configure the API URL
 
@@ -659,6 +660,7 @@ The deployed stack currently allows exactly:
 
 ```text
 http://localhost:5173
+https://contextlens-wheat.vercel.app
 ```
 
 API Gateway permits browser requests from that origin using `GET`, `POST`, and `OPTIONS`, with `Content-Type` as the allowed request header. The S3 bucket permits `PUT` and `HEAD` from the same origin, allows `Content-Type` and `x-amz-server-side-encryption`, and exposes `ETag`.
@@ -668,9 +670,10 @@ Origins include scheme, hostname, and port. These are different origins and are 
 - `http://127.0.0.1:5173`
 - `http://localhost:3000`
 - `https://localhost:5173`
-- Any deployed frontend domain
+- Any other deployed frontend domain
 
-For a production frontend, the backend stack must be updated with that exact production origin. Changing a frontend environment variable does not change backend CORS.
+Changing the production domain requires updating `ProductionFrontendOrigin`; changing a frontend
+environment variable alone does not change backend CORS.
 
 When troubleshooting CORS:
 

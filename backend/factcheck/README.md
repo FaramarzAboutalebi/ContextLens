@@ -64,6 +64,7 @@ DOCKER_HOST="unix://$HOME/.docker/run/docker.sock" sam deploy \
   --confirm-changeset \
   --parameter-overrides \
     FrontendOrigin=http://localhost:5173 \
+    ProductionFrontendOrigin=https://contextlens-wheat.vercel.app \
     MaxMediaBytes=78643200 \
     MaxVideoSeconds=180 \
     JobTtlSeconds=172800 \

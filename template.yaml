@@ -5,8 +5,12 @@ Description: Minimal ContextLens hackathon backend
 Parameters:
   FrontendOrigin:
     Type: String
-    Description: Exact frontend origin allowed by API Gateway and S3 CORS
+    Description: Exact local-development origin allowed by API Gateway and S3 CORS
     Default: http://localhost:5173
+  ProductionFrontendOrigin:
+    Type: String
+    Description: Exact production frontend origin allowed by API Gateway and S3 CORS
+    Default: https://contextlens-wheat.vercel.app
   GeminiSecretArn:
     Type: String
     Description: Optional Secrets Manager ARN containing GEMINI_API_KEY or the raw key
@@ -42,6 +46,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref FrontendOrigin
+          - !Ref ProductionFrontendOrigin
         AllowHeaders:
           - Content-Type
         AllowMethods:
@@ -68,6 +73,7 @@ Resources:
         CorsRules:
           - AllowedOrigins:
               - !Ref FrontendOrigin
+              - !Ref ProductionFrontendOrigin
             AllowedMethods:
               - PUT
               - HEAD

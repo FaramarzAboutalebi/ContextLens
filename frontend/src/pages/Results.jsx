@@ -1,7 +1,7 @@
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import VideoPlayer from '../components/VideoPlayer';
-import { Button } from '@mui/material';
+import { Alert, Button, Snackbar } from '@mui/material';
 import {
     ANALYSIS_STATES,
     getAnalysis,
@@ -18,16 +18,22 @@ function Results() {
         location.state?.analysis ?? null
     );
     const [loadError, setLoadError] = useState('');
-    const [shareMessage, setShareMessage] = useState('');
+    const [shareNotice, setShareNotice] = useState(null);
 
     const shareResult = async () => {
         const shareUrl = `${window.location.origin}/results/${encodeURIComponent(analysisId)}`;
 
         try {
             await navigator.clipboard.writeText(shareUrl);
-            setShareMessage('Link copied!');
+            setShareNotice({
+                severity: 'success',
+                message: 'Share link copied to your clipboard.',
+            });
         } catch {
-            setShareMessage('Could not copy the link. Please copy the URL from your address bar.');
+            setShareNotice({
+                severity: 'error',
+                message: 'Could not copy the link. Please copy it from your address bar.',
+            });
         }
     };
 
@@ -80,7 +86,7 @@ function Results() {
         return () => controller.abort();
     }, [analysisId]);
 
-    const [videoUrls, setVideoUrls] = useState({
+    const [localVideoUrls, setLocalVideoUrls] = useState({
         shortClip: null,
         originalVideo: null,
     });
@@ -97,7 +103,7 @@ function Results() {
             ? URL.createObjectURL(originalVideo)
             : null;
 
-        setVideoUrls({
+        setLocalVideoUrls({
             shortClip: shortClipUrl,
             originalVideo: originalVideoUrl,
         });
@@ -107,6 +113,13 @@ function Results() {
             if (originalVideoUrl) URL.revokeObjectURL(originalVideoUrl);
         };
     }, [location.state]);
+
+    const videoUrls = {
+        shortClip:
+            localVideoUrls.shortClip ?? analysis?.media?.clip?.url ?? null,
+        originalVideo:
+            localVideoUrls.originalVideo ?? analysis?.media?.original?.url ?? null,
+    };
 
 
         const apiResult =
@@ -224,12 +237,6 @@ function Results() {
                     Share Result ↗
                 </Button>
             </div>
-
-            {shareMessage && (
-                <p className="demo-label" role="status" aria-live="polite">
-                    {shareMessage}
-                </p>
-            )}
 
             <p className="dialog-copy">
                 Here's what ContextLens found in the original recording.
@@ -352,13 +359,33 @@ function Results() {
                 Analysis ID: {analysisId}
             </p>
 
-            {!location.state?.shortClip && !location.state?.originalVideo && (
+            {!videoUrls.shortClip && !videoUrls.originalVideo && (
                 <p className="demo-label" role="status">
-                    Uploaded videos are available only during the current analysis session.
-                    Return to Analyze to upload them again.
+                    Video playback is no longer available for this analysis.
                 </p>
             )}
         </div>
+
+        <Snackbar
+            open={Boolean(shareNotice)}
+            autoHideDuration={2800}
+            onClose={() => setShareNotice(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+            <Alert
+                severity={shareNotice?.severity ?? 'success'}
+                variant="filled"
+                onClose={() => setShareNotice(null)}
+                sx={{
+                    width: '100%',
+                    borderRadius: 3,
+                    boxShadow: '0 14px 36px rgba(24, 18, 64, 0.24)',
+                    fontWeight: 600,
+                }}
+            >
+                {shareNotice?.message}
+            </Alert>
+        </Snackbar>
         </main>
     );
 }

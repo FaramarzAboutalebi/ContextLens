@@ -35,6 +35,22 @@ def create_upload_url(key, content_type, expires_in, client=None):
     )
 
 
+def create_playback_url(key, expires_in, client=None):
+    """Create a short-lived URL that streams one private MP4 object."""
+    s3 = client or _client()
+    return s3.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": bucket_name(),
+            "Key": key,
+            "ResponseContentType": "video/mp4",
+            "ResponseContentDisposition": "inline",
+        },
+        ExpiresIn=expires_in,
+        HttpMethod="GET",
+    )
+
+
 def validate_uploaded_object(key, client=None):
     s3 = client or _client()
     metadata = s3.head_object(Bucket=bucket_name(), Key=key)

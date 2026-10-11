@@ -94,22 +94,28 @@ def claim_processing(analysis_id, updated_at, table=None):
         raise
 
 
-def save_result(analysis_id, result, updated_at, table=None):
+def save_result(analysis_id, result, updated_at, poster_keys=None, table=None):
     target = table or _table()
+    update_expression = (
+        "SET #state = :complete, updated_at = :updated, #result = :result"
+    )
+    expression_values = {
+        ":processing": PROCESSING,
+        ":complete": COMPLETE,
+        ":updated": updated_at,
+        ":result": to_dynamodb(result),
+    }
+    if poster_keys:
+        update_expression += ", poster_keys = :poster_keys"
+        expression_values[":poster_keys"] = poster_keys
+    update_expression += " REMOVE failure"
+
     target.update_item(
         Key={"analysis_id": analysis_id},
-        UpdateExpression=(
-            "SET #state = :complete, updated_at = :updated, #result = :result "
-            "REMOVE failure"
-        ),
+        UpdateExpression=update_expression,
         ConditionExpression="#state = :processing",
         ExpressionAttributeNames={"#state": "state", "#result": "result"},
-        ExpressionAttributeValues={
-            ":processing": PROCESSING,
-            ":complete": COMPLETE,
-            ":updated": updated_at,
-            ":result": to_dynamodb(result),
-        },
+        ExpressionAttributeValues=expression_values,
     )
 
 

@@ -219,6 +219,11 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref UploadBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub '${UploadBucket.Arn}/analyses/*-poster.jpg'
         - DynamoDBCrudPolicy:
             TableName: !Ref AnalysisTable
         - SQSPollerPolicy:

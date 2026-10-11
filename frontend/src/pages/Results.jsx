@@ -120,6 +120,10 @@ function Results() {
         originalVideo:
             localVideoUrls.originalVideo ?? analysis?.media?.original?.url ?? null,
     };
+    const videoPosters = {
+        shortClip: analysis?.media?.clip?.poster_url ?? null,
+        originalVideo: analysis?.media?.original?.poster_url ?? null,
+    };
 
 
         const apiResult =
@@ -250,11 +254,13 @@ function Results() {
                         <VideoPlayer
                             title="Short Clip"
                             src={videoUrls.shortClip}
+                            poster={videoPosters.shortClip}
                         />
 
                         <VideoPlayer
                             title="Original Video"
                             src={videoUrls.originalVideo}
+                            poster={videoPosters.originalVideo}
                         />
                     </div>
                 )}

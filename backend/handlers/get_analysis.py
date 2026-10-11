@@ -15,7 +15,7 @@ def _playback_media(item):
         return None
 
     expires_in = playback_url_ttl_seconds()
-    return {
+    media = {
         "original": {
             "url": s3.create_playback_url(original_key, expires_in),
             "content_type": "video/mp4",
@@ -27,6 +27,22 @@ def _playback_media(item):
             "expires_in": expires_in,
         },
     }
+    poster_keys = item.get("poster_keys") or {}
+    if not poster_keys and item.get("analysis_id"):
+        candidate_keys = s3.object_keys(item["analysis_id"])
+        poster_keys = {
+            name: candidate_keys[f"{name}_poster"]
+            for name in ("original", "clip")
+            if s3.object_exists(candidate_keys[f"{name}_poster"])
+        }
+
+    for name, poster_key in poster_keys.items():
+        if name in media and poster_key:
+            media[name]["poster_url"] = s3.create_poster_url(
+                poster_key,
+                expires_in,
+            )
+    return media
 
 
 def lambda_handler(event, _context):

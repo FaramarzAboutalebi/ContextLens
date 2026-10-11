@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Button, Drawer, IconButton } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 
 function Header({ onTry }) {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(
     window.location.hash || '#home'
@@ -48,11 +49,26 @@ function Header({ onTry }) {
 
   const tryNow = () => { closeMenu(); onTry(); };
 
-  const openExamples = (event) => {
+  const openSection = (sectionId) => (event) => {
     event.preventDefault();
+    const wasMenuOpen = menuOpen;
     closeMenu();
-    window.history.pushState(null, '', '#examples');
-    window.setTimeout(() => document.querySelector('#examples')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250);
+    setActiveSection(sectionId === 'home' ? '#home' : `#${sectionId}`);
+    navigate(sectionId === 'home' ? '/' : `/#${sectionId}`);
+
+    // MUI temporarily locks document scrolling while the mobile drawer closes.
+    // Explicitly scroll after that transition, including when the hash is
+    // already selected and React Router would otherwise have nothing to update.
+    window.setTimeout(() => {
+      if (sectionId === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        document.getElementById(sectionId)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, wasMenuOpen ? 300 : 0);
   };
 
   return <header className="site-header">
@@ -65,7 +81,7 @@ function Header({ onTry }) {
       <Link
         className={activeSection === '#home' ? 'active' : ''}
         to="/"
-        onClick={() => setActiveSection('#home')}
+        onClick={openSection('home')}
       >
         Home
       </Link>
@@ -73,7 +89,7 @@ function Header({ onTry }) {
       <Link
         className={activeSection === '#how' ? 'active' : ''}
         to="/#how"
-        onClick={() => setActiveSection('#how')}
+        onClick={openSection('how')}
       >
         How It Works
       </Link>
@@ -81,7 +97,7 @@ function Header({ onTry }) {
       <Link
         className={activeSection === '#examples' ? 'active' : ''}
         to="/#examples"
-        onClick={() => setActiveSection('#examples')}
+        onClick={openSection('examples')}
       >
         Examples
       </Link>
@@ -89,7 +105,7 @@ function Header({ onTry }) {
       <Link
         className={activeSection === '#about' ? 'active' : ''}
         to="/#about"
-        onClick={() => setActiveSection('#about')}
+        onClick={openSection('about')}
       >
         About
       </Link>
@@ -138,10 +154,10 @@ function Header({ onTry }) {
           </IconButton>
         </div>
 
-        <Link to="/" onClick={closeMenu}>Home</Link>
-        <Link to="/#how" onClick={closeMenu}>How It Works</Link>
-        <Link to="/#examples" onClick={closeMenu}>Examples</Link>
-        <Link to="/#about" onClick={closeMenu}>About</Link>
+        <Link to="/" onClick={openSection('home')}>Home</Link>
+        <Link to="/#how" onClick={openSection('how')}>How It Works</Link>
+        <Link to="/#examples" onClick={openSection('examples')}>Examples</Link>
+        <Link to="/#about" onClick={openSection('about')}>About</Link>
 
         <Button className="button" onClick={tryNow}>
           Try It Now →

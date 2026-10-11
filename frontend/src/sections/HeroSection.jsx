@@ -1,4 +1,6 @@
 import { Button } from '@mui/material';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import VideoLibraryOutlinedIcon from '@mui/icons-material/VideoLibraryOutlined';
 import ResultCard from '../components/ResultCard';
 
 function HeroSection({ onTry, activeTime, onPlay }) {
@@ -20,6 +22,28 @@ function HeroSection({ onTry, activeTime, onPlay }) {
           where the clip appears, transcribes the speech, and shows what
           was said before and after.
         </p>
+
+        <div className="hero-capabilities" aria-label="What ContextLens supports">
+          <p>WHAT CONTEXTLENS SUPPORTS</p>
+          <div>
+            <span className="hero-capability-icon" aria-hidden="true">
+              <VideoLibraryOutlinedIcon />
+            </span>
+            <span>
+              <strong>Compare video clips</strong>
+              <small>Find the source match and surrounding context.</small>
+            </span>
+          </div>
+          <div>
+            <span className="hero-capability-icon" aria-hidden="true">
+              <InstagramIcon />
+            </span>
+            <span>
+              <strong>Fact-check Instagram Reels</strong>
+              <small>Review factual claims with timestamped, cited evidence.</small>
+            </span>
+          </div>
+        </div>
 
         <div className="hero-actions desktop-hero-actions">
           <Button className="button hero-button" onClick={onTry}>

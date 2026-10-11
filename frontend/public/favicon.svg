@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="contextlens-gradient" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7354ff" />
+      <stop offset="1" stop-color="#4822ed" />
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#contextlens-gradient)" />
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#fff" stroke-width="3" />
+  <circle cx="32" cy="32" r="11" fill="none" stroke="#fff" stroke-width="3" />
+  <circle cx="32" cy="32" r="3.5" fill="#fff" />
+</svg>

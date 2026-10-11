@@ -2,6 +2,7 @@ import Header from './components/Header';
 import Home from './pages/Home';
 import Analyze from './pages/Analyze';
 import Results from './pages/Results';
+import FactCheckResults from './pages/FactCheckResults';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
@@ -37,6 +38,7 @@ export default function App() {
       />
       <Route path="/analyze" element={<Analyze />} />
       <Route path="/results/:analysisId" element={<Results />} />
+      <Route path="/fact-check-results/:factCheckId" element={<FactCheckResults />} />
     </Routes>
 
     <Snackbar open={Boolean(toastText)} autoHideDuration={2800} onClose={() => setToastText('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}><Alert severity="info" variant="filled" icon={<PlayArrowRoundedIcon />} sx={{ borderRadius: 3 }}>{toastText}</Alert></Snackbar>

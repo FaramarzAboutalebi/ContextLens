@@ -123,6 +123,14 @@ function Results() {
                 before: apiResult.context?.before,
                 during: apiResult.context?.during,
                 after: apiResult.context?.after,
+                aiInsights: apiResult.ai_context_insights ?? {
+                    status: 'unavailable',
+                    insight: null,
+                    model: null,
+                },
+                contextFlags: Array.isArray(apiResult.context_flags)
+                    ? apiResult.context_flags
+                    : [],
             }
             : null;
 
@@ -220,6 +228,39 @@ function Results() {
                     during={result.during}
                     after={result.after}
                     />
+
+                    {result.aiInsights?.status === 'success' &&
+                        result.aiInsights.insight && (
+                            <section className="ai-insights">
+                                <h2>AI Context Insight</h2>
+
+                                <p className="ai-insight-text">
+                                    {result.aiInsights.insight}
+                                </p>
+
+                                {result.contextFlags.length > 0 && (
+                                    <div className="context-flags">
+                                        <h3>Context Flags</h3>
+
+                                        {result.contextFlags.map((flag, index) => (
+                                            <article
+                                                className="context-flag"
+                                                key={`${flag.type}-${index}`}
+                                            >
+                                                <strong>{flag.title}</strong>
+                                                <p>{flag.explanation}</p>
+
+                                                {flag.evidence && (
+                                                    <blockquote>
+                                                        “{flag.evidence}”
+                                                    </blockquote>
+                                                )}
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
                 </>
                 )}
 

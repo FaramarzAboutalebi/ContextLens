@@ -385,4 +385,5 @@ export async function waitForFactCheck(apiBaseUrl, factCheckId, options = {}) {
 }
 ```
 
-The browser origin must exactly match the stack's `FrontendOrigin` parameter. S3 upload CORS and API Gateway CORS are configured from the same value.
+The browser origin must exactly match either `FrontendOrigin` (local development) or
+`ProductionFrontendOrigin`. S3 upload CORS and API Gateway CORS use the same explicit origin list.

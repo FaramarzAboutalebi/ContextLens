@@ -218,6 +218,18 @@ function FactCheckResults() {
     const { factCheckId } = useParams();
     const location = useLocation();
     const [job, setJob] = useState(location.state?.factCheck ?? null);
+    const [shareMessage, setShareMessage] = useState('');
+
+    const shareResult = async () => {
+        const shareUrl = `${window.location.origin}/fact-check-results/${encodeURIComponent(factCheckId)}`;
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setShareMessage('Link copied!');
+        } catch {
+            setShareMessage('Could not copy the link. Please copy the URL from your address bar.');
+        }
+    };
     const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
@@ -310,12 +322,35 @@ function FactCheckResults() {
                         </p>
                     )}
                     <Button
+                        type="button"
+                        variant="outlined"
+                        onClick={shareResult}
+                        sx={{
+                            mr: 2,
+                            mb: 2,
+                            borderColor: '#6036ff',
+                            color: '#6036ff',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                        }}
+                    >
+                        Share Result
+                    </Button>
+
+                    <Button
                         component={Link}
                         to="/analyze?mode=instagram"
-                        className="button fact-check-back-button"
+                        className="button analyze-button"
                     >
-                        Try another Reel →
+                        Analyze Another Reel →
                     </Button>
+
+                    {shareMessage && (
+                        <p className="demo-label" role="status" aria-live="polite">
+                            {shareMessage}
+                        </p>
+                    )}
+
                     <p className="demo-label">Fact-check ID: {factCheckId}</p>
                 </div>
             </main>
@@ -354,11 +389,48 @@ function FactCheckResults() {
         <main className="results-page fact-check-results-page">
             <div className="results-container">
                 <p className="eyebrow">INSTAGRAM FACT-CHECK</p>
-                <h1>Reel evidence review</h1>
-                <p className="dialog-copy">
-                    Claims are assessed individually against cited evidence—not as an
-                    accuracy score for the creator or entire video.
-                </p>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '16px',
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        <h1>Reel evidence review</h1>
+
+                        <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={shareResult}
+                            sx={{
+                                borderColor: '#6036ff',
+                                color: '#6036ff',
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                '&:hover': {
+                                    borderColor: '#4c25dd',
+                                    backgroundColor: '#f3efff',
+                                },
+                            }}
+                        >
+                            Share Result ↗
+                        </Button>
+                    </div>
+
+                    {shareMessage && (
+                        <p className="demo-label" role="status" aria-live="polite">
+                            {shareMessage}
+                        </p>
+                    )}
+
+                    <p className="dialog-copy">
+                        Claims are assessed individually against cited evidence—not as an
+                        accuracy score for the creator or entire video.
+                    </p>
 
                 <section className={`fact-check-summary verdict-${verdict.toLowerCase()}`}>
                     <span className="fact-check-kicker">OVERALL EVIDENCE</span>
@@ -532,12 +604,34 @@ function FactCheckResults() {
                 </p>
 
                 <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={shareResult}
+                    sx={{
+                        mr: 2,
+                        mb: 2,
+                        borderColor: '#6036ff',
+                        color: '#6036ff',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                    }}
+                >
+                    Share Result
+                </Button>
+
+                <Button
                     component={Link}
                     to="/analyze?mode=instagram"
                     className="button analyze-button"
                 >
                     Analyze Another Reel →
                 </Button>
+
+                {shareMessage && (
+                    <p className="demo-label" role="status" aria-live="polite">
+                        {shareMessage}
+                    </p>
+                )}
 
                 <p className="demo-label">Fact-check ID: {factCheckId}</p>
             </div>

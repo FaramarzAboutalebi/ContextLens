@@ -18,6 +18,18 @@ function Results() {
         location.state?.analysis ?? null
     );
     const [loadError, setLoadError] = useState('');
+    const [shareMessage, setShareMessage] = useState('');
+
+    const shareResult = async () => {
+        const shareUrl = `${window.location.origin}/results/${encodeURIComponent(analysisId)}`;
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setShareMessage('Link copied!');
+        } catch {
+            setShareMessage('Could not copy the link. Please copy the URL from your address bar.');
+        }
+    };
 
     useEffect(() => {
 
@@ -181,9 +193,46 @@ function Results() {
         <main className="results-page">
         <div className="results-container">
             <p className="eyebrow">ANALYSIS RESULTS</p>
-            <h1>Your video analysis</h1>
+
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '16px',
+                    flexWrap: 'wrap',
+                }}
+            >
+                <h1>Your video analysis</h1>
+
+                <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={shareResult}
+                    sx={{
+                        borderColor: '#6036ff',
+                        color: '#6036ff',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        '&:hover': {
+                            borderColor: '#4c25dd',
+                            backgroundColor: '#f3efff',
+                        },
+                    }}
+                >
+                    Share Result ↗
+                </Button>
+            </div>
+
+            {shareMessage && (
+                <p className="demo-label" role="status" aria-live="polite">
+                    {shareMessage}
+                </p>
+            )}
+
             <p className="dialog-copy">
-            Here's what ContextLens found in the original recording.
+                Here's what ContextLens found in the original recording.
             </p>
 
             <div className="results-panel">
